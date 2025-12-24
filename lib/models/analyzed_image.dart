@@ -45,6 +45,12 @@ class AnalyzedImage {
   /// Check if analysis is complete
   bool get isAnalyzed => technicalScore != null && aestheticScore != null;
 
+  /// Calculate average score (mean of technical and aesthetic scores)
+  double? get averageScore {
+    if (technicalScore == null || aestheticScore == null) return null;
+    return (technicalScore! + aestheticScore!) / 2.0;
+  }
+
   /// Get formatted technical score string
   String get technicalScoreText {
     if (error != null) return 'Error';
@@ -60,5 +66,12 @@ class AnalyzedImage {
     if (aestheticScore == null) return 'N/A';
     return aestheticScore!.toStringAsFixed(2);
   }
-}
 
+  /// Get formatted average score string
+  String get averageScoreText {
+    if (error != null) return 'Error';
+    if (isAnalyzing) return 'Analyzing...';
+    if (averageScore == null) return 'N/A';
+    return averageScore!.toStringAsFixed(2);
+  }
+}

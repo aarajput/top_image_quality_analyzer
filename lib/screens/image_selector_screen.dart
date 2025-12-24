@@ -1,7 +1,9 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../models/analyzed_image.dart';
 import '../services/tflite_service.dart';
 import '../utils/image_preprocessor.dart';
@@ -10,10 +12,7 @@ import '../utils/image_preprocessor.dart';
 class ImageSelectorScreen extends StatefulWidget {
   final TFLiteService tfliteService;
 
-  const ImageSelectorScreen({
-    super.key,
-    required this.tfliteService,
-  });
+  const ImageSelectorScreen({super.key, required this.tfliteService});
 
   @override
   State<ImageSelectorScreen> createState() => _ImageSelectorScreenState();
@@ -56,16 +55,16 @@ class _ImageSelectorScreenState extends State<ImageSelectorScreen> {
             const SizedBox(height: 20),
             Text(
               'No images selected',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 10),
             Text(
               'Tap the button below to add images',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[500],
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
             ),
             const SizedBox(height: 30),
             ElevatedButton.icon(
@@ -84,8 +83,30 @@ class _ImageSelectorScreenState extends State<ImageSelectorScreen> {
       );
     }
 
+    // Check if we have at least 3 analyzed images to show best picks
+    final analyzedImages = _images.where((img) => img.isAnalyzed).toList();
+    final canShowBest3 = analyzedImages.length >= 3;
+
     return Column(
       children: [
+        // Show "View Best 3" button when we have at least 3 analyzed images
+        if (canShowBest3)
+          Container(
+            padding: const EdgeInsets.all(8),
+            child: ElevatedButton.icon(
+              onPressed: _showBest3Images,
+              icon: const Icon(Icons.stars),
+              label: const Text('View Best 3 Images'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+              ),
+            ),
+          ),
         Expanded(
           child: GridView.builder(
             padding: const EdgeInsets.all(8),
@@ -108,9 +129,7 @@ class _ImageSelectorScreenState extends State<ImageSelectorScreen> {
   Widget _buildImageCard(AnalyzedImage analyzedImage, int index) {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -123,10 +142,7 @@ class _ImageSelectorScreenState extends State<ImageSelectorScreen> {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(12),
                   ),
-                  child: Image.file(
-                    analyzedImage.imageFile,
-                    fit: BoxFit.cover,
-                  ),
+                  child: Image.file(analyzedImage.imageFile, fit: BoxFit.cover),
                 ),
                 // Delete button
                 Positioned(
@@ -146,9 +162,7 @@ class _ImageSelectorScreenState extends State<ImageSelectorScreen> {
                   Container(
                     color: Colors.black45,
                     child: const Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                      ),
+                      child: CircularProgressIndicator(color: Colors.white),
                     ),
                   ),
               ],
@@ -205,6 +219,29 @@ class _ImageSelectorScreenState extends State<ImageSelectorScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 4),
+                if (analyzedImage.isAnalyzed)
+                  Row(
+                    children: [
+                      const Icon(Icons.stars, size: 16, color: Colors.amber),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'Average: ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        analyzedImage.averageScoreText,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -272,9 +309,9 @@ class _ImageSelectorScreenState extends State<ImageSelectorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking images: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking images: $e')));
       }
     }
   }
@@ -289,9 +326,9 @@ class _ImageSelectorScreenState extends State<ImageSelectorScreen> {
       await _addAndAnalyzeImage(File(photo.path));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error capturing image: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error capturing image: $e')));
       }
     }
   }
@@ -344,9 +381,9 @@ class _ImageSelectorScreenState extends State<ImageSelectorScreen> {
             error: e.toString(),
           );
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Analysis error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Analysis error: $e')));
       }
     }
   }
@@ -357,6 +394,219 @@ class _ImageSelectorScreenState extends State<ImageSelectorScreen> {
       _images.removeAt(index);
     });
   }
+
+  /// Show dialog with best 3 images based on average score
+  void _showBest3Images() {
+    // Get analyzed images and sort by average score (descending)
+    final analyzedImages = _images.where((img) => img.isAnalyzed).toList();
+    analyzedImages.sort((a, b) {
+      final scoreA = a.averageScore ?? 0.0;
+      final scoreB = b.averageScore ?? 0.0;
+      return scoreB.compareTo(scoreA); // Descending order
+    });
+
+    // Take top 3
+    final best3 = analyzedImages.take(3).toList();
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.amber,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(4),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.stars, color: Colors.black87),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Top 3 Best Images',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Best 3 images list
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: best3.length,
+                  itemBuilder: (context, index) {
+                    return _buildBest3Card(best3[index], index + 1);
+                  },
+                ),
+              ),
+              // Close button
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Build card for best 3 dialog
+  Widget _buildBest3Card(AnalyzedImage image, int rank) {
+    // Medal colors for top 3
+    final medalColors = [
+      Colors.amber, // Gold
+      Colors.grey[400]!, // Silver
+      Colors.brown[300]!, // Bronze
+    ];
+    final medalIcons = ['🥇', '🥈', '🥉'];
+
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: medalColors[rank - 1], width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Rank header
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: medalColors[rank - 1].withValues(alpha: 0.3),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(10),
+              ),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  medalIcons[rank - 1],
+                  style: const TextStyle(fontSize: 24),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Rank #$rank',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.stars, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        image.averageScoreText,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Image
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(10),
+              ),
+              child: Image.file(image.imageFile, fit: BoxFit.cover),
+            ),
+          ),
+          // Scores
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildScoreChip(
+                  icon: Icons.build,
+                  label: 'Technical',
+                  score: image.technicalScoreText,
+                  color: Colors.blue,
+                ),
+                _buildScoreChip(
+                  icon: Icons.palette,
+                  label: 'Aesthetic',
+                  score: image.aestheticScoreText,
+                  color: Colors.purple,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build score chip for best 3 dialog
+  Widget _buildScoreChip({
+    required IconData icon,
+    required String label,
+    required String score,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 4),
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            score,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Background function to preprocess image
@@ -366,4 +616,3 @@ Future<Float32List> _preprocessImageInBackground(String imagePath) async {
   final imageFile = File(imagePath);
   return await ImagePreprocessor.preprocessImage(imageFile);
 }
-
