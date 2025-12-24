@@ -9,8 +9,34 @@ A Flutter app that analyzes image quality using TensorFlow Lite NIMA (Neural Ima
   - Technical Quality Model: Evaluates technical aspects (sharpness, noise, etc.)
   - Aesthetic Quality Model: Evaluates aesthetic appeal
 - 📊 **Real-time Scoring**: Displays scores from 1-10 for each image
+- 🥇 **Best 3 Ranking**: Automatically identifies and displays top 3 images by average score
 - 🎨 **Modern UI**: Clean, intuitive interface with grid layout
 - ⚡ **Performance**: Background image preprocessing for smooth UX
+
+## Algorithm & Metrics
+
+This app uses **NIMA (Neural Image Assessment)**, a state-of-the-art deep learning approach that predicts image quality as humans perceive it. 
+
+### Quick Overview
+
+**Two Independent Models:**
+1. **Technical Model** - Measures objective quality (sharpness, noise, exposure, color accuracy)
+2. **Aesthetic Model** - Measures subjective appeal (composition, lighting, creativity, emotion)
+
+**How Scoring Works:**
+- Each model outputs a probability distribution over ratings 1-10
+- Final score = Expected value (Mean Opinion Score)
+- Formula: `MOS = Σ(probability[i] × (i + 1))` for i = 0 to 9
+- Images ranked by average of both scores
+
+**Why This Works:**
+- Trained on 250,000+ images with human ratings
+- Captures variance in human perception
+- Separate technical/aesthetic dimensions
+- More accurate than traditional metrics (PSNR, SSIM)
+
+📖 **[Read Full Algorithm Explanation →](ALGORITHM_EXPLAINED.md)**  
+Detailed documentation covering metrics, preprocessing, inference, scoring, and ranking.
 
 ## Models
 
@@ -81,6 +107,16 @@ for (int i = 0; i < 10; i++) {
 }
 ```
 
+### 5. Ranking (Best 3 Feature)
+Images are ranked by their **average score**:
+```dart
+averageScore = (technicalScore + aestheticScore) / 2
+```
+The app automatically identifies the top 3 images:
+- 🥇 **Rank 1**: Highest average score
+- 🥈 **Rank 2**: Second highest
+- 🥉 **Rank 3**: Third highest
+
 ## Running the App
 
 ### Prerequisites
@@ -126,8 +162,12 @@ No additional setup required. The app uses Gradle Kotlin DSL and supports API le
 3. **Choose source**:
    - Gallery: Select multiple images (up to 10)
    - Camera: Capture a new photo
-4. **View results** - Scores appear below each image
-5. **Remove images** - Tap the X button on any image
+4. **View results** - Scores appear below each image:
+   - 🔧 Technical score
+   - 🎨 Aesthetic score
+   - ⭐ Average score
+5. **View Best 3** - Tap the "View Best 3 Images" button to see top-ranked images
+6. **Remove images** - Tap the X button on any image
 
 ## Technical Details
 
@@ -153,12 +193,23 @@ No additional setup required. The app uses Gradle Kotlin DSL and supports API le
 - Models must be compatible with TensorFlow Lite
 - Inference runs on CPU (no GPU acceleration in this version)
 
+## Documentation
+
+- **[README.md](README.md)** - This file, project overview and quick start
+- **[ALGORITHM_EXPLAINED.md](ALGORITHM_EXPLAINED.md)** - Detailed algorithm, metrics, and ranking explanation
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Technical implementation details
+- **[BEST_3_FEATURE.md](BEST_3_FEATURE.md)** - Best 3 images ranking feature guide
+- **[QUICK_START.md](QUICK_START.md)** - User guide and troubleshooting
+- **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)** - High-level project structure
+
 ## Credits
 
 Models sourced from:
 - [TensorFlow Lite NIMA Implementation](https://github.com/SophieMBerger/TensorFlow-Lite-implementation-of-Google-NIMA)
 
-Based on Google's NIMA (Neural Image Assessment) research.
+Based on Google's NIMA (Neural Image Assessment) research:
+- Paper: "NIMA: Neural Image Assessment" by Talebi & Milanfar (Google Research, 2018)
+- [arXiv:1709.05424](https://arxiv.org/abs/1709.05424)
 
 ## License
 
